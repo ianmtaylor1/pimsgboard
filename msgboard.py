@@ -23,20 +23,30 @@ def check_db(filename):
     try:
         # Connect to db (creating it if it doesn't exist)
         conn = sqlite3.connect(os.path.normpath(filename))
-        cur = conn.cursor()
-        # List all table names
-        cur.execute("select name from sqlite_master where type='table';")
-        names = [x[0] for x in cur.fetchall()]
-        # Check for the table we need
-        if 'messages' not in names:
-            cur.execute("create table messages (id INTEGER PRIMARY KEY, timestamp TEXT, contents TEXT);")
-            conn.commit()
-        # To do: check for correct columns in table?
+        with conn:
+            cur = conn.cursor()
+            # List all table names
+            cur.execute("select name from sqlite_master where type='table';")
+            names = [x[0] for x in cur.fetchall()]
+            # Check for the table we need
+            if 'messages' not in names:
+                cur.execute("create table messages (id INTEGER PRIMARY KEY, timestamp TEXT, contents TEXT);")
+                conn.commit()
+            # To do: check for correct columns in table?
     except:
         return False
     finally:
         conn.close()
     return True
+
+
+# Return all messages from the message table as a list
+def get_all_messages(db_file):
+    conn = sqlite3.connect(os.path.normpath(db_file))
+    with conn:
+        msgs = conn.execute("select id, timestamp, contents from messages order by timestamp").fetchall()
+    conn.close()
+    return msgs
 
 
 # This function waits for joystick input and calls appropriate functions
@@ -59,15 +69,23 @@ def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
 # This thread periodically polls the message database and alerts for available
 # new messages
 def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
-    count = 0
     while True:
-        if led_lock.acquire(blocking=False):
-            try:
-                sense.show_letter(str(count % 10))
-            finally:
-                led_lock.release()
+        # How many messages do we currently have?
+        count = len(get_all_messages(db_file))
+        if count > 0:
+            # If the count is one digit, show it. If not, show a +
+            if count < 10:
+                showchar = str(count)
+            else:
+                showchar = "+"
+            # Try to acquire the lock for the display and display the count
+            if led_lock.acquire(blocking=False):
+                try:
+                    sense.show_letter(showchar)
+                finally:
+                    led_lock.release()
+        # Wait until next check
         time.sleep(poll_interval)
-        count += 1
 
 
 def main(argv):
@@ -100,6 +118,9 @@ def main(argv):
     # Wait indefinitely for them to end
     input_thread.join()
     inbox_thread.join()
+
+    # Clear sense hat display
+    sense.clear()
 
 #######################################################################
 
