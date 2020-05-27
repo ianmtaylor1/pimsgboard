@@ -4,19 +4,40 @@ import sense_hat
 import sqlite3
 import time
 import threading
+import os
+import sys
 
 # Location of the database we will read from
 db_file = "test.db"
 
 # How fast to scroll. 1 is default. 2 is twice as fast, etc.
-msg_speed = 2
+msg_speed = 1.5
+
+# How frequently to poll for new messages, in seconds
+poll_interval = 3.0
 
 ######################################################
 
 # Check for a database that looks like we need
 def check_db(filename):
-    # Todo: stub
+    try:
+        # Connect to db (creating it if it doesn't exist)
+        conn = sqlite3.connect(os.path.normpath(filename))
+        cur = conn.cursor()
+        # List all table names
+        cur.execute("select name from sqlite_master where type='table';")
+        names = [x[0] for x in cur.fetchall()]
+        # Check for the table we need
+        if 'messages' not in names:
+            cur.execute("create table messages (id INTEGER PRIMARY KEY, timestamp TEXT, contents TEXT);")
+            conn.commit()
+        # To do: check for correct columns in table?
+    except:
+        return False
+    finally:
+        conn.close()
     return True
+
 
 # This function waits for joystick input and calls appropriate functions
 def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
@@ -34,6 +55,7 @@ def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
                         text_string="Message: {}".format(event.direction),
                         scroll_speed=0.1/msg_speed)
 
+
 # This thread periodically polls the message database and alerts for available
 # new messages
 def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
@@ -50,7 +72,8 @@ def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
 
 def main(argv):
     # Check if the database exists and is in the correct format
-    check_db(db_file)
+    if not check_db(db_file):
+        sys.exit("Error reading database file {}".format(dbfile))
     
     # Create the sense hat object: shared by all threads
     sense = sense_hat.SenseHat()
@@ -68,7 +91,8 @@ def main(argv):
             kwargs={'msg_speed':msg_speed})
     inbox_thread = threading.Thread(
             target=check_inbox,
-            args=(sense, led_lock, db_file))
+            args=(sense, led_lock, db_file),
+            kwargs={'poll_interval':poll_interval})
     input_thread.start()
     inbox_thread.start()
     print("Ready")
