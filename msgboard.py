@@ -8,33 +8,30 @@ import threading
 # Location of the database we will read from
 db_file = "test.db"
 
-# Create the sense hat object: shared by all threads
-sense = sense_hat.SenseHat()
+######################################################
 
-# Locks to coordinate access to resources
-led_lock = threading.RLock()
-input_lock = threading.RLock()
-
-# Set low light mode to protect retinas
-sense.low_light = True
+# Check for a database that looks like we need
+def check_db(filename):
+    # Todo: stub
+    return True
 
 # This function waits for joystick input and calls appropriate functions
-def handle_joystick_input():
+def handle_joystick_input(sense, led_lock, db_file):
     while True:
+        # Clear any events that occurred while processing the most
+        # recent event. I.e. simulate a "ready" period, or a "not accepting
+        # input" period of time.
+        _ = sense.stick.get_events()
         # Get the next event from the joystick
-        with input_lock:
-            # Clear any events that occurred while processing the most
-            # recent event. I.e. simulate a "ready" period, or a "not accepting
-            # input" period of time.
-            _ = sense.stick.get_events()
-            event = sense.stick.wait_for_event()
+        event = sense.stick.wait_for_event()
+        
         if event.action == sense_hat.ACTION_RELEASED:
             with led_lock:
                 sense.show_message("Message: {}".format(event.direction))
 
 # This thread periodically polls the message database and alerts for available
 # new messages
-def check_inbox():
+def check_inbox(sense, led_lock, db_file):
     count = 0
     while True:
         if led_lock.acquire(blocking=False):
@@ -45,13 +42,37 @@ def check_inbox():
         time.sleep(2.5)
         count += 1
 
-# Start both threads
-input_thread = threading.Thread(target=handle_joystick_input)
-inbox_thread = threading.Thread(target=check_inbox)
-input_thread.start()
-inbox_thread.start()
-print("Ready")
 
-# Wait indefinitely for them to end
-input_thread.join()
-inbox_thread.join()
+def main(argv):
+    # Check if the database exists and is in the correct format
+    check_db(db_file)
+    
+    # Create the sense hat object: shared by all threads
+    sense = sense_hat.SenseHat()
+    
+    # Lock to coordinate access to the sense's LED display
+    led_lock = threading.RLock()
+    
+    # Set low light mode to protect retinas
+    sense.low_light = True
+    
+    # Start both threads
+    input_thread = threading.Thread(
+            target=handle_joystick_input,
+            args=(sense, led_lock, db_file))
+    inbox_thread = threading.Thread(
+            target=check_inbox,
+            args=(sense, led_lock, db_file))
+    input_thread.start()
+    inbox_thread.start()
+    print("Ready")
+    
+    # Wait indefinitely for them to end
+    input_thread.join()
+    inbox_thread.join()
+
+#######################################################################
+
+if __name__ == "__main__":
+    import sys
+    main(sys.argv)
