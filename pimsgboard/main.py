@@ -73,7 +73,7 @@ def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
         time.sleep(poll_interval)
 
 
-def main(argv):
+def main():
     # Check if the database exists and is in the correct format
     if not db.check_db(db_file):
         sys.exit("Error reading database file {}".format(dbfile))
