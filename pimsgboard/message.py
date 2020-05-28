@@ -17,7 +17,7 @@ def _reltimestr(then, now):
     elif then.date() == now.date():
         return then.strftime("%I:%M %p")
     elif then.date() == now.date() - datetime.timedelta(days=1):
-        return "yesterday {}".format(then.strftime("%I:%M %p")
+        return "yesterday {}".format(then.strftime("%I:%M %p"))
     elif minutes < 60 * 24 * 6:
         return then.strftime('%a %I:%M %p')
     elif minutes < 60 * 24 * 180:

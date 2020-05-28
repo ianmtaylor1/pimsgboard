@@ -9,7 +9,7 @@ from . import db
 db_file = "/tmp/test.db"
 
 # How fast to scroll. 1 is default. 2 is twice as fast, etc.
-msg_speed = 5
+msg_speed = 2.25
 
 # How frequently to poll for new messages, in seconds
 poll_interval = 3.0
@@ -20,11 +20,9 @@ poll_interval = 3.0
 # Displays a message in the standard message format
 # If running in a multi-threaded environment, the led_lock should be acquired
 # before calling this function
-def display_message(sense, timestamp, text, idx, count, speed=1, color=None):
-    fullmsg = 'Msg {}/{} ({}): "{}"'.format(idx, count, timestamp, text)
-    if color is None:
-        color = [255,255,255]
-    sense.show_message(text_string=fullmsg, text_colour=color, 
+def display_message(sense, msg, idx, count, speed=1):
+    fullmsg = 'Msg {}/{} {}'.format(idx, count, msg)
+    sense.show_message(text_string=fullmsg, text_colour=msg.color, 
             scroll_speed=0.1/speed)
 
 
@@ -43,12 +41,9 @@ def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
                 msgs = db.get_all_messages(db_file)
                 with led_lock:
                     for i,m in enumerate(msgs):
-                        display_message(
-                                sense, 
-                                m[1], m[2], 
-                                i+1, len(msgs), 
+                        display_message(sense, m, i+1, len(msgs),
                                 speed=msg_speed)
-                        db.delete_message(db_file, m[0])
+                        db.delete_message(db_file, m)
 
 
 # This thread periodically polls the message database and alerts for available
@@ -56,7 +51,7 @@ def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
 def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
     while True:
         # How many messages do we currently have?
-        count = len(db.get_all_messages(db_file))
+        count = db.count_messages(db_file)
         if count > 0:
             # If the count is one digit, show it. If not, show a +
             if count < 10:
