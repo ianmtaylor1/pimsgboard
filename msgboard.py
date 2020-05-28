@@ -8,10 +8,10 @@ import os
 import sys
 
 # Location of the database we will read from
-db_file = "test.db"
+db_file = "/tmp/test.db"
 
 # How fast to scroll. 1 is default. 2 is twice as fast, etc.
-msg_speed = 1.5
+msg_speed = 5
 
 # How frequently to poll for new messages, in seconds
 poll_interval = 3.0
@@ -49,6 +49,26 @@ def get_all_messages(db_file):
     return msgs
 
 
+# Displays a message in the standard message format
+# If running in a multi-threaded environment, the led_lock should be acquired
+# before calling this function
+def display_message(sense, timestamp, text, idx, count, speed=1, color=None):
+    fullmsg = 'Msg {}/{} ({}): "{}"'.format(idx, count, timestamp, text)
+    if color is None:
+        color = [255,255,255]
+    sense.show_message(text_string=fullmsg, text_colour=color, 
+            scroll_speed=0.1/speed)
+
+
+# Deletes a message from the database by id
+def delete_message(db_file, msg_id):
+    conn = sqlite3.connect(os.path.normpath(db_file))
+    with conn:
+        cur = conn.cursor()
+        cur.execute("delete from messages where id = ?;", (msg_id,))
+    conn.close()
+
+
 # This function waits for joystick input and calls appropriate functions
 def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
     while True:
@@ -58,12 +78,18 @@ def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
         _ = sense.stick.get_events()
         # Get the next event from the joystick
         event = sense.stick.wait_for_event()
-        
         if event.action == sense_hat.ACTION_RELEASED:
-            with led_lock:
-                sense.show_message(
-                        text_string="Message: {}".format(event.direction),
-                        scroll_speed=0.1/msg_speed)
+            if event.direction == sense_hat.DIRECTION_MIDDLE:
+                # Middle button = display all messages
+                msgs = get_all_messages(db_file)
+                with led_lock:
+                    for i,m in enumerate(msgs):
+                        display_message(
+                                sense, 
+                                m[1], m[2], 
+                                i+1, len(msgs), 
+                                speed=msg_speed)
+                        delete_message(db_file, m[0])
 
 
 # This thread periodically polls the message database and alerts for available
