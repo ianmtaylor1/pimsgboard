@@ -1,11 +1,9 @@
-#!/usr/bin/env python3
-
 import sense_hat
-import sqlite3
 import time
 import threading
-import os
 import sys
+
+from . import db
 
 # Location of the database we will read from
 db_file = "/tmp/test.db"
@@ -18,36 +16,6 @@ poll_interval = 3.0
 
 ######################################################
 
-# Check for a database that looks like we need
-def check_db(filename):
-    try:
-        # Connect to db (creating it if it doesn't exist)
-        conn = sqlite3.connect(os.path.normpath(filename))
-        with conn:
-            cur = conn.cursor()
-            # List all table names
-            cur.execute("select name from sqlite_master where type='table';")
-            names = [x[0] for x in cur.fetchall()]
-            # Check for the table we need
-            if 'messages' not in names:
-                cur.execute("create table messages (id INTEGER PRIMARY KEY, timestamp TEXT, contents TEXT);")
-                conn.commit()
-            # To do: check for correct columns in table?
-    except:
-        return False
-    finally:
-        conn.close()
-    return True
-
-
-# Return all messages from the message table as a list
-def get_all_messages(db_file):
-    conn = sqlite3.connect(os.path.normpath(db_file))
-    with conn:
-        msgs = conn.execute("select id, timestamp, contents from messages order by timestamp").fetchall()
-    conn.close()
-    return msgs
-
 
 # Displays a message in the standard message format
 # If running in a multi-threaded environment, the led_lock should be acquired
@@ -58,15 +26,6 @@ def display_message(sense, timestamp, text, idx, count, speed=1, color=None):
         color = [255,255,255]
     sense.show_message(text_string=fullmsg, text_colour=color, 
             scroll_speed=0.1/speed)
-
-
-# Deletes a message from the database by id
-def delete_message(db_file, msg_id):
-    conn = sqlite3.connect(os.path.normpath(db_file))
-    with conn:
-        cur = conn.cursor()
-        cur.execute("delete from messages where id = ?;", (msg_id,))
-    conn.close()
 
 
 # This function waits for joystick input and calls appropriate functions
@@ -81,7 +40,7 @@ def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
         if event.action == sense_hat.ACTION_RELEASED:
             if event.direction == sense_hat.DIRECTION_MIDDLE:
                 # Middle button = display all messages
-                msgs = get_all_messages(db_file)
+                msgs = db.get_all_messages(db_file)
                 with led_lock:
                     for i,m in enumerate(msgs):
                         display_message(
@@ -89,7 +48,7 @@ def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
                                 m[1], m[2], 
                                 i+1, len(msgs), 
                                 speed=msg_speed)
-                        delete_message(db_file, m[0])
+                        db.delete_message(db_file, m[0])
 
 
 # This thread periodically polls the message database and alerts for available
@@ -97,7 +56,7 @@ def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
 def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
     while True:
         # How many messages do we currently have?
-        count = len(get_all_messages(db_file))
+        count = len(db.get_all_messages(db_file))
         if count > 0:
             # If the count is one digit, show it. If not, show a +
             if count < 10:
@@ -116,7 +75,7 @@ def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
 
 def main(argv):
     # Check if the database exists and is in the correct format
-    if not check_db(db_file):
+    if not db.check_db(db_file):
         sys.exit("Error reading database file {}".format(dbfile))
     
     # Create the sense hat object: shared by all threads
@@ -148,8 +107,4 @@ def main(argv):
     # Clear sense hat display
     sense.clear()
 
-#######################################################################
 
-if __name__ == "__main__":
-    import sys
-    main(sys.argv)
