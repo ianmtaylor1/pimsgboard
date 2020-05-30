@@ -2,6 +2,7 @@ import sense_hat
 import time
 import threading
 import sys
+import configparser
 
 from . import db
 from . import web
@@ -72,13 +73,13 @@ def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
 def main():
     # Global parameters. Future: read from config?
     # Location of the database we will read from
-    db_file = "/tmp/test.db"
+    db_file = "/tmp/pimsgboard.db"
     # How fast to scroll. 1 is default. 2 is twice as fast, etc.
     msg_speed = 2.0
     # How frequently to poll for new messages, in seconds
     poll_interval = 5.0
     # Where to serve the webpage
-    web_host = ''
+    web_host = '127.0.0.1'
     web_port = 8080
     
     # Check if the database exists and is in the correct format
