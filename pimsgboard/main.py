@@ -74,9 +74,9 @@ def main():
     # Location of the database we will read from
     db_file = "/tmp/test.db"
     # How fast to scroll. 1 is default. 2 is twice as fast, etc.
-    msg_speed = 2.25
+    msg_speed = 2.0
     # How frequently to poll for new messages, in seconds
-    poll_interval = 3.0
+    poll_interval = 5.0
     # Where to serve the webpage
     web_host = ''
     web_port = 8080

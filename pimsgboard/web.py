@@ -1,5 +1,6 @@
 import wsgiref.simple_server as wsgi_server
 import cgi
+import colorsys
 
 from . import message
 from . import db
@@ -11,7 +12,9 @@ html = """
 </head>
 <body>
 <form method="post" action="">
-Leave me a message: <input type="text" name="message">
+Leave me a message: 
+<input type="text" name="message">
+<input type="color" value="#FFFFFF" name="color">
 <input type="submit" value="Send">
 <span style="color:red">{thanks}</span>
 </form>
@@ -32,10 +35,17 @@ def msg_app(env, start_response):
     
     # Extract the message that was submitted (if any)
     message_text = post_data.get(b"message",[b""])[0].decode(errors='ignore')
+    message_color_hex = post_data.get(b"color",[b"#FFFFFF"])[0].decode(errors='ignore')
     
     # Create a Message and save to db
     if len(message_text) > 0:
-        msg = message.Message(id_=0, text=message_text)
+        try:
+            rgb = tuple(int(message_color_hex[x:(x+2)], 16)/255 for x in [1,3,5])
+        except:
+            # If anything at all doesn't work, just use white
+            rgb = (1.0, 1.0, 1.0)
+        hsv = colorsys.rgb_to_hsv(*rgb)
+        msg = message.Message(id_=0, text=message_text, hue=hsv[0], sat=hsv[1])
         db.write_message(_web_db, msg)
 
     # Construct response body
