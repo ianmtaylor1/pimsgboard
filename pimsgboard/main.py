@@ -20,6 +20,8 @@ def display_message(sense, msg, idx, count, speed=1):
 
 # This function waits for joystick input and calls appropriate functions
 def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
+    # Start out with a blank list of messages
+    msgs = []
     while True:
         # Clear any events that occurred while processing the most
         # recent event. I.e. simulate a "ready" period, or a "not accepting
@@ -31,6 +33,13 @@ def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
             if event.direction == sense_hat.DIRECTION_MIDDLE:
                 # Middle button = display all messages
                 msgs = db.get_all_messages(db_file)
+                with led_lock:
+                    for i,m in enumerate(msgs):
+                        display_message(sense, m, i+1, len(msgs),
+                                speed=msg_speed)
+                        db.delete_message(db_file, m)
+            if event.direction == sense_hat.DIRECTION_LEFT:
+                # Left button = display last set of messages
                 with led_lock:
                     for i,m in enumerate(msgs):
                         display_message(sense, m, i+1, len(msgs),
