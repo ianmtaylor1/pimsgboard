@@ -3,6 +3,7 @@ messages."""
 
 import datetime
 import math
+import colorsys
 
 def _reltimestr(then, now):
     """Return a sensible string representing the relative time of then compared
@@ -31,13 +32,14 @@ def _reltimestr(then, now):
 class Message:
     """Contains the representation of a message."""
 
-    def __init__(self, id_, text, timestamp=None, color=[255,255,255]):
+    def __init__(self, id_, text, timestamp=None, hue=0.0, sat=0.0):
         self.id = id_
         if timestamp is None:
             timestamp = datetime.datetime.now()
         self.timestamp = timestamp
         self.text = text
-        self.color = color
+        self.hue = min(1, max(0, hue))
+        self.sat = min(1, max(0, sat))
 
     def __str__(self):
         return self.tostring()
@@ -53,3 +55,10 @@ class Message:
         else:
             displaytime = self.timestamp.strftime('%c')
         return '"{}" ({})'.format(self.text, displaytime)
+
+    def rgb(val=1.0):
+        """Convert the internal hue and saturation into RGB colors for the
+        sense hat, using the HSV scale and the supplied value. Returns a
+        list of three integers between 0 and 255."""
+        rgb_raw = colorsys.hsv_to_rgb(self.hue, self.sat, val)
+        return [math.floor(x * 255.99) for x in rgb_raw]

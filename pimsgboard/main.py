@@ -22,7 +22,7 @@ poll_interval = 3.0
 # before calling this function
 def display_message(sense, msg, idx, count, speed=1):
     fullmsg = 'Msg {}/{} {}'.format(idx, count, msg)
-    sense.show_message(text_string=fullmsg, text_colour=msg.color, 
+    sense.show_message(text_string=fullmsg, text_colour=msg.rgb(), 
             scroll_speed=0.1/speed)
 
 
