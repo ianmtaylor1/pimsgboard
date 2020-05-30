@@ -5,14 +5,6 @@ import sys
 
 from . import db
 
-# Location of the database we will read from
-db_file = "/tmp/test.db"
-
-# How fast to scroll. 1 is default. 2 is twice as fast, etc.
-msg_speed = 2.25
-
-# How frequently to poll for new messages, in seconds
-poll_interval = 3.0
 
 ######################################################
 
@@ -21,7 +13,7 @@ poll_interval = 3.0
 # If running in a multi-threaded environment, the led_lock should be acquired
 # before calling this function
 def display_message(sense, msg, idx, count, speed=1):
-    fullmsg = 'Msg {}/{} {}'.format(idx, count, msg)
+    fullmsg = 'Msg {}/{}: {}'.format(idx, count, msg)
     sense.show_message(text_string=fullmsg, text_colour=msg.rgb(), 
             scroll_speed=0.1/speed)
 
@@ -69,6 +61,14 @@ def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
 
 
 def main():
+    # Global parameters. Future: read from config?
+    # Location of the database we will read from
+    db_file = "/tmp/test.db"
+    # How fast to scroll. 1 is default. 2 is twice as fast, etc.
+    msg_speed = 2.25
+    # How frequently to poll for new messages, in seconds
+    poll_interval = 3.0
+    
     # Check if the database exists and is in the correct format
     if not db.check_db(db_file):
         sys.exit("Error reading database file {}".format(dbfile))

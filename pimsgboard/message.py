@@ -56,7 +56,7 @@ class Message:
             displaytime = self.timestamp.strftime('%c')
         return '"{}" ({})'.format(self.text, displaytime)
 
-    def rgb(val=1.0):
+    def rgb(self, val=1.0):
         """Convert the internal hue and saturation into RGB colors for the
         sense hat, using the HSV scale and the supplied value. Returns a
         list of three integers between 0 and 255."""
