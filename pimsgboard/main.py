@@ -4,7 +4,7 @@ import threading
 import sys
 
 from . import db
-
+from . import web
 
 ######################################################
 
@@ -77,6 +77,9 @@ def main():
     msg_speed = 2.25
     # How frequently to poll for new messages, in seconds
     poll_interval = 3.0
+    # Where to serve the webpage
+    web_host = ''
+    web_port = 8080
     
     # Check if the database exists and is in the correct format
     if not db.check_db(db_file):
@@ -91,7 +94,8 @@ def main():
     # Set low light mode to protect retinas
     sense.low_light = True
     
-    # Start both threads
+    # Start threads for handling joystick input, idle inbox display,
+    # and web interface
     input_thread = threading.Thread(
             target=handle_joystick_input,
             args=(sense, led_lock, db_file),
@@ -100,13 +104,19 @@ def main():
             target=check_inbox,
             args=(sense, led_lock, db_file),
             kwargs={'poll_interval':poll_interval})
+    web_thread = threading.Thread(
+            target=web.start_server,
+            args=(web_host, web_port, db_file),
+            kwargs={})
     input_thread.start()
     inbox_thread.start()
+    web_thread.start()
     print("Ready")
     
     # Wait indefinitely for them to end
-    input_thread.join()
+    web_thread.join()
     inbox_thread.join()
+    input_thread.join()
 
     # Clear sense hat display
     sense.clear()
