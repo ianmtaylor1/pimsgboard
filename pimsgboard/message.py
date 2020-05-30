@@ -12,7 +12,9 @@ def _reltimestr(then, now):
         # Assume negatives are due to clocks slightly out of sync
         return "just now"
     minutes = delta.days * 24 * 60 + (delta.seconds + delta.microseconds / 1000000) / 60
-    if minutes < 60:
+    if minutes < 1:
+        return "1 minute ago"
+    elif minutes < 60:
         return "{} minutes ago".format(math.ceil(minutes))
     elif then.date() == now.date():
         return then.strftime("%I:%M %p")
@@ -29,11 +31,11 @@ def _reltimestr(then, now):
 class Message:
     """Contains the representation of a message."""
 
-    def __init__(self, id_, timestr, text, color=[255,255,255]):
+    def __init__(self, id_, text, timestamp=None, color=[255,255,255]):
         self.id = id_
-        self.timestamp = datetime.datetime.strptime(
-                timestr,
-                '%Y-%m-%d %H:%M:%S')
+        if timestamp is None:
+            timestamp = datetime.datetime.now()
+        self.timestamp = timestamp
         self.text = text
         self.color = color
 
@@ -50,4 +52,4 @@ class Message:
             displaytime = _reltimestr(self.timestamp, now)
         else:
             displaytime = self.timestamp.strftime('%c')
-        return '({}) "{}"'.format(displaytime, self.text)
+        return '"{}" ({})'.format(self.text, displaytime)
