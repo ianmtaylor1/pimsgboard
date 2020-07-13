@@ -39,13 +39,19 @@ def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
                         display_message(sense, m, i+1, len(msgs),
                                 speed=msg_speed)
                         db.delete_message(db_file, m)
-            if event.direction == sense_hat.DIRECTION_LEFT:
+            elif event.direction == sense_hat.DIRECTION_LEFT:
                 # Left button = display last set of messages
                 with led_lock:
                     for i,m in enumerate(msgs):
                         display_message(sense, m, i+1, len(msgs),
                                 speed=msg_speed)
                         db.delete_message(db_file, m)
+            else:
+                # TBD
+                with led_lock:
+                    sense.show_message(
+                            text_string='{} TBD'.format(event.direction),
+                            scroll_speed=0.1/msg_speed)
 
 
 # This thread periodically polls the message database and alerts for available
