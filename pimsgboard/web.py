@@ -11,13 +11,17 @@ html = """
 <title>{title}</title>
 </head>
 <body>
+<h3>Leave me a message</h3>
 <form method="post" action="">
-Leave me a message: 
 <input type="text" name="message">
 <input type="color" value="#FFFFFF" name="color">
 <input type="submit" value="Send">
 <span style="color:red">{thanks}</span>
 </form>
+<br/><br/>
+<a href="https://github.com/ianmtaylor1/pimsgboard">
+View the code on GitHub
+</a>
 </body>
 </html>
 """
