@@ -85,7 +85,7 @@ def main():
     # How frequently to poll for new messages, in seconds
     poll_interval = 5.0
     # Where to serve the webpage
-    web_host = '127.0.0.1'
+    web_host = ''
     web_port = 8080
     
     # Check if the database exists and is in the correct format
