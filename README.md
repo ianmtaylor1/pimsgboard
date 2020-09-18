@@ -25,7 +25,8 @@ replay the most recent group of past messages.
 
 ## Installing
 
-1. On a Raspberry Pi with a sense hat attached, run:
+1. On a Raspberry Pi running [Raspberry Pi OS](https://www.raspberrypi.org/downloads/raspberry-pi-os/)
+with a sense hat attached, run:
 
 ```
 sudo apt-get install sense-hat python3-pip
@@ -50,6 +51,14 @@ pimsgboard
 Configuration TBD. At the moment, configurable values are hard-coded. If you want
 to change any of the configurable values, they can be found at the beginning of
 the `main()` function in `main.py`.
+
+## Starting automatically
+
+To start `pimsgboard` automatically on Raspberry Pi boot, add this line to the pi
+user's crontab (by running `crontab -e`)
+```
+@reboot /home/pi/.local/bin/pimsgboard >/dev/null 2>&1
+```
 
 ## Listening on Port 80
 
