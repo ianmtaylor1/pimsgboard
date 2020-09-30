@@ -55,6 +55,16 @@ def count_messages(db_file):
     return count
 
 
+# What is the time of the oldest message?
+def oldest_message(db_file):
+    conn = sqlite3.connect(os.path.normpath(db_file))
+    with conn:
+        cur = conn.cursor()
+        cur.execute("select timestamp from messages")
+        earliest = min(x[0] for x in cur.fetchall())
+    return datetime.datetime.strptime(earliest, '%Y-%m-%d %H:%M:%S')
+
+
 # Deletes a message from the database by id
 def delete_message(db_file, msg):
     conn = sqlite3.connect(os.path.normpath(db_file))

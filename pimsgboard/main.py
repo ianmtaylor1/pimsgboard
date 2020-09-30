@@ -3,6 +3,8 @@ import time
 import threading
 import sys
 import configparser
+import colorsys
+import math
 
 from . import db
 from . import web
@@ -61,15 +63,21 @@ def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
         # How many messages do we currently have?
         count = db.count_messages(db_file)
         if count > 0:
+            # How old is the oldest message?
+            firsttime = db.oldest_message(db_file)
             # If the count is one digit, show it. If not, show a +
             if count < 10:
                 showchar = str(count)
             else:
                 showchar = "+"
+            # Determine the color based on the time of the oldest message
+            hue = (hash(firsttime) % 256) / 256
+            sat = ((hash(firsttime) // 256) % 256) / 256
+            rgb = [math.floor(x * 255.99) for x in colorsys.hsv_to_rgb(hue, sat, 1.0)]
             # Try to acquire the lock for the display and display the count
             if led_lock.acquire(blocking=False):
                 try:
-                    sense.show_letter(showchar)
+                    sense.show_letter(showchar, text_colour=rgb)
                 finally:
                     led_lock.release()
         # Wait until next check
