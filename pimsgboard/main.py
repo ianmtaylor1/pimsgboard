@@ -71,8 +71,8 @@ def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
             else:
                 showchar = "+"
             # Determine the color based on the time of the oldest message
-            hue = (hash(firsttime) % 256) / 256
-            sat = ((hash(firsttime) // 256) % 256) / 256
+            hue = (hash(firsttime) % 1024) / 1024
+            sat = math.sqrt(((hash(firsttime) // 1024) % 1024) / 1024)
             rgb = [math.floor(x * 255.99) for x in colorsys.hsv_to_rgb(hue, sat, 1.0)]
             # Try to acquire the lock for the display and display the count
             if led_lock.acquire(blocking=False):
