@@ -23,6 +23,10 @@ blank screen means no messages). Pressing the middle button on the sense hat
 joystick will display all new messages. Pressing left on the joystick will
 replay the most recent group of past messages.
 
+The color of the notification digit is determined pseudorandomly by the timestamp
+of the oldest unread message. It will stay the same until the messages are read,
+then it will (probably) be different when the next message is received.
+
 ## Installing
 
 1. On a Raspberry Pi running [Raspberry Pi OS](https://www.raspberrypi.org/downloads/raspberry-pi-os/)
