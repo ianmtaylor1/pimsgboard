@@ -5,6 +5,7 @@ import sys
 import configparser
 import colorsys
 import math
+import os
 
 from . import db
 from . import web
@@ -85,29 +86,39 @@ def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
 
 
 def main():
-    # Global parameters. Future: read from config?
+    # Read from configuration
+    cf = configparser.ConfigParser({
+        'dbfile': "/tmp/pimsgboard.db",
+        'scrollspeed':2.0,
+        'pollinterval':5.0,
+        'webhost':'',
+        'webport':8080,
+        'lowlight':True})
+    cf.add_section('pimsgboard')
+    if os.path.isfile(os.path.expanduser("~/.pimsgboard")):
+        cf.read(os.path.expanduser("~/.pimsgboard"))
     # Location of the database we will read from
-    db_file = "/tmp/pimsgboard.db"
+    db_file = cf.get("pimsgboard", "dbfile")
     # How fast to scroll. 1 is default. 2 is twice as fast, etc.
-    msg_speed = 2.0
+    msg_speed = cf.getfloat("pimsgboard", "scrollspeed")
     # How frequently to poll for new messages, in seconds
-    poll_interval = 5.0
+    poll_interval = cf.getfloat("pimsgboard", "pollinterval")
     # Where to serve the webpage
-    web_host = ''
-    web_port = 8080
+    web_host = cf.get("pimsgboard", "webhost")
+    web_port = cf.getint("pimsgboard", "webport")
+    # Set low light mode to protect retinas
+    low_light = cf.getboolean("pimsgboard", "lowlight")
     
     # Check if the database exists and is in the correct format
     if not db.check_db(db_file):
-        sys.exit("Error reading database file {}".format(dbfile))
+        sys.exit("Error reading database file {}".format(db_file))
     
     # Create the sense hat object: shared by all threads
     sense = sense_hat.SenseHat()
-    
+    sense.low_light = low_light
+
     # Lock to coordinate access to the sense's LED display
     led_lock = threading.RLock()
-    
-    # Set low light mode to protect retinas
-    sense.low_light = True
     
     # Start threads for handling joystick input, idle inbox display,
     # and web interface

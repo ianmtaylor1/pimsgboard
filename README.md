@@ -52,9 +52,33 @@ pimsgboard
 
 ## Configuration
 
-Configuration TBD. At the moment, configurable values are hard-coded. If you want
-to change any of the configurable values, they can be found at the beginning of
-the `main()` function in `main.py`.
+Configuration is read in from the file `.pimsgboard` in your home directory.
+This file in in a `.ini` format. Here is an example file with the defaults
+filled in.
+```
+[pimsgboard]
+DBFile = /tmp/pimsgboard.db
+ScrollSpeed = 2.0
+PollInterval = 5.0
+WebHost = 
+WebPort = 8080
+LowLight = yes
+```
+
+To override any of these defaults create a file `.pimsgboard` in your home
+directory with the `[pimsgboard]` header and any desired options below it.
+
+The options are
+
+* `DBFile` is the location of the SQLite database. You will probably never need to set this yourself.
+* `ScrollSpeed` is the speed at which messages scroll across the LED matrix. Higher is faster, and 1.0 is the default speed of the sense hat.
+* `PollInterval` is how often to check for new messages, in seconds.
+* `WebHost` is an IP address for the web server to listen on. By default, it listens on all interfaces.
+* `WebPort` is the port for the web server to listen on.
+* `LowLight` is whether to use the sense hat's "low light" mode.
+
+The configuration is read once at startup. If any options are changed, restart
+the pimsgboard program.
 
 ## Starting automatically
 
