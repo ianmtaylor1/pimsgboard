@@ -63,6 +63,7 @@ PollInterval = 5.0
 WebHost = 
 WebPort = 8080
 LowLight = yes
+AutoPlay = no
 ```
 
 To override any of these defaults create a file `.pimsgboard` in your home
@@ -76,6 +77,7 @@ The options are
 * `WebHost` is an IP address for the web server to listen on. By default, it listens on all interfaces.
 * `WebPort` is the port for the web server to listen on.
 * `LowLight` is whether to use the sense hat's "low light" mode.
+* `AutoPlay` - if true, messages will automatically scroll when received, instead of waiting for a button push. The buttons are unresponsive in this mode.
 
 The configuration is read once at startup. If any options are changed, restart
 the pimsgboard program.
