@@ -13,7 +13,7 @@ from . import web
 ######################################################
 
 
-# Displays a message in the standard message format
+# Displays a message in the standard message format, or a plain format.
 # If running in a multi-threaded environment, the led_lock should be acquired
 # before calling this function
 def display_message(sense, msg, idx, count, speed=1):
@@ -21,6 +21,10 @@ def display_message(sense, msg, idx, count, speed=1):
     sense.show_message(text_string=fullmsg, text_colour=msg.rgb(), 
             scroll_speed=0.1/speed)
 
+def display_message_plain(sense, msg, speed=1):
+    sense.show_message(text_string=msg.tostring(plain=True),
+            text_colour=msg.rgb(),
+            scroll_speed=0.1/speed)
 
 # This function waits for joystick input and calls appropriate functions
 def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
@@ -85,6 +89,20 @@ def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
         time.sleep(poll_interval)
 
 
+# This thread periodically checks the message database and automatically
+# scrolls messages across the display
+def check_and_autoplay(sense, led_lock, db_file, poll_interval=5.0, msg_speed=1):
+    while True:
+        # How many messages do we currently have?
+        msgs = db.get_all_messages(db_file)
+        with led_lock:
+            for i,m in enumerate(msgs):
+                display_message_plain(sense, m, speed=msg_speed)
+                db.delete_message(db_file, m)
+        # Wait until next check
+        time.sleep(poll_interval)
+
+
 def main():
     # Read from configuration
     cf = configparser.ConfigParser({
@@ -93,7 +111,8 @@ def main():
         'pollinterval':5.0,
         'webhost':'',
         'webport':8080,
-        'lowlight':True})
+        'lowlight':True,
+        'autoplay':False})
     cf.add_section('pimsgboard')
     if os.path.isfile(os.path.expanduser("~/.pimsgboard")):
         cf.read(os.path.expanduser("~/.pimsgboard"))
@@ -108,6 +127,8 @@ def main():
     web_port = cf.getint("pimsgboard", "webport")
     # Set low light mode to protect retinas
     low_light = cf.getboolean("pimsgboard", "lowlight")
+    # Shoudl messages automatically scroll or wait for buttons?
+    auto_play = cf.getboolean("pimsgboard", "autoplay")
     
     # Check if the database exists and is in the correct format
     if not db.check_db(db_file):
@@ -121,28 +142,39 @@ def main():
     led_lock = threading.RLock()
     
     # Start threads for handling joystick input, idle inbox display,
-    # and web interface
-    input_thread = threading.Thread(
-            target=handle_joystick_input,
-            args=(sense, led_lock, db_file),
-            kwargs={'msg_speed':msg_speed})
-    inbox_thread = threading.Thread(
-            target=check_inbox,
-            args=(sense, led_lock, db_file),
-            kwargs={'poll_interval':poll_interval})
+    # and web interface. If autoplay is on, start thread for autoplaying
+    if auto_play:
+        auto_thread = threading.Thread(
+                target=check_and_autoplay,
+                args=(sense, led_lock, db_file),
+                kwargs={'msg_speed':msg_speed, 'poll_interval':poll_interval})
+        auto_thread.start()
+    else:
+        input_thread = threading.Thread(
+                target=handle_joystick_input,
+                args=(sense, led_lock, db_file),
+                kwargs={'msg_speed':msg_speed})
+        inbox_thread = threading.Thread(
+                target=check_inbox,
+                args=(sense, led_lock, db_file),
+                kwargs={'poll_interval':poll_interval})
+        input_thread.start()
+        inbox_thread.start()
     web_thread = threading.Thread(
             target=web.start_server,
             args=(web_host, web_port, db_file),
             kwargs={})
-    input_thread.start()
-    inbox_thread.start()
     web_thread.start()
+    
     print("Ready")
     
     # Wait indefinitely for them to end
     web_thread.join()
-    inbox_thread.join()
-    input_thread.join()
+    if auto_play:
+        auto_thread.join()
+    else:
+        inbox_thread.join()
+        input_thread.join()
 
     # Clear sense hat display
     sense.clear()

@@ -44,17 +44,21 @@ class Message:
     def __str__(self):
         return self.tostring()
     
-    def tostring(self, reltime=True, now=None):
-        """Convert the message to a string for display. If reltime is true,
+    def tostring(self, plain=False, reltime=True, now=None):
+        """Convert the message to a string for display. If plain is True,
+        the message text is returned with no quotes or time. If reltime is true,
         report the time as relative (e.g. '5 minutes ago'). Relative time
         is relative to 'now', which defaults to datetime.datetime.now()"""
-        if reltime:
-            if now is None:
-                now = datetime.datetime.now()
-            displaytime = _reltimestr(self.timestamp, now)
+        if plain:
+            return self.text
         else:
-            displaytime = self.timestamp.strftime('%c')
-        return '"{}" ({})'.format(self.text, displaytime)
+            if reltime:
+                if now is None:
+                    now = datetime.datetime.now()
+                displaytime = _reltimestr(self.timestamp, now)
+            else:
+                displaytime = self.timestamp.strftime('%c')
+            return '"{}" ({})'.format(self.text, displaytime)
 
     def rgb(self, val=1.0):
         """Convert the internal hue and saturation into RGB colors for the
