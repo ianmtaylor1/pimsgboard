@@ -10,7 +10,7 @@ except:
 
 setuptools.setup(
         name="pimsgboard",
-        version="0.3.0",
+        version="0.3.1",
         author="Ian Taylor",
         author_email="ian@iantaylor.xyz",
         description="Message board application based on the Sense Hat",
