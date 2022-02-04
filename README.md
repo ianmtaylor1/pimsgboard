@@ -6,7 +6,7 @@ are then displayed on the Raspberry Pi sense hat.
 
 ## Web Interface
 
-![Screenshot of web interface](https://f001.backblazeb2.com/file/www-iantaylor-xyz/github/pimsgboard/pimsgboard.PNG)
+![Screenshot of web interface](pimsgboard-interface-screenshot?raw=true)
 
 Once `pimsgboard` is running, it will serve a web interface (by default on all
 addresses, port 8080). You can leave a message by going there in any browser.
