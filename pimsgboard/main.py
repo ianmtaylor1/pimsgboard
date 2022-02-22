@@ -9,6 +9,7 @@ import os
 
 from . import db
 from . import web
+from . import plugin
 
 ######################################################
 
@@ -27,7 +28,7 @@ def display_message_plain(sense, msg, speed=1):
             scroll_speed=0.1/speed)
 
 # This function waits for joystick input and calls appropriate functions
-def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
+def handle_joystick_input(sense, led_lock, db_file, direction_plugin, msg_speed=1):
     # Start out with a blank list of messages
     msgs = []
     while True:
@@ -56,9 +57,8 @@ def handle_joystick_input(sense, led_lock, db_file, msg_speed=1):
             else:
                 # TBD
                 with led_lock:
-                    sense.show_message(
-                            text_string='{} TBD'.format(event.direction),
-                            scroll_speed=0.1/msg_speed)
+                    direction_plugin(sense, event.direction)
+                    sense.clear()
 
 
 # This thread periodically polls the message database and alerts for available
@@ -112,7 +112,8 @@ def main():
         'webhost':'',
         'webport':8080,
         'lowlight':True,
-        'autoplay':False})
+        'autoplay':False,
+        'directionplugin':''})
     cf.add_section('pimsgboard')
     if os.path.isfile(os.path.expanduser("~/.pimsgboard")):
         cf.read(os.path.expanduser("~/.pimsgboard"))
@@ -127,8 +128,10 @@ def main():
     web_port = cf.getint("pimsgboard", "webport")
     # Set low light mode to protect retinas
     low_light = cf.getboolean("pimsgboard", "lowlight")
-    # Shoudl messages automatically scroll or wait for buttons?
+    # Should messages automatically scroll or wait for buttons?
     auto_play = cf.getboolean("pimsgboard", "autoplay")
+    # What function should be used for remaining directional buttons?
+    direction_plugin_name = cf.get("pimsgboard", "directionplugin")
     
     # Check if the database exists and is in the correct format
     if not db.check_db(db_file):
@@ -140,6 +143,9 @@ def main():
 
     # Lock to coordinate access to the sense's LED display
     led_lock = threading.RLock()
+
+    # Load plugin module and retrieve callable
+    direction_plugin = plugin.get_plugin_by_name(direction_plugin_name)
     
     # Start threads for handling joystick input, idle inbox display,
     # and web interface. If autoplay is on, start thread for autoplaying
@@ -152,7 +158,7 @@ def main():
     else:
         input_thread = threading.Thread(
                 target=handle_joystick_input,
-                args=(sense, led_lock, db_file),
+                args=(sense, led_lock, db_file, direction_plugin),
                 kwargs={'msg_speed':msg_speed})
         inbox_thread = threading.Thread(
                 target=check_inbox,

@@ -64,6 +64,7 @@ WebHost =
 WebPort = 8080
 LowLight = yes
 AutoPlay = no
+DirectionPlugin = 
 ```
 
 To override any of these defaults create a file `.pimsgboard` in your home
@@ -78,9 +79,42 @@ The options are
 * `WebPort` is the port for the web server to listen on.
 * `LowLight` is whether to use the sense hat's "low light" mode.
 * `AutoPlay` - if true, messages will automatically scroll when received, instead of waiting for a button push. The buttons are unresponsive in this mode.
+* `DirectionPlugin` - A function to call in the event of other direction buttons (up, right, down) being pressed. Should be a string representing a callable in another Python module installed on the same device, e.g., 'mypackage.mymodule.myfunction'. See section 'Plugins' for more details.
 
 The configuration is read once at startup. If any options are changed, restart
 the pimsgboard program.
+
+## Plugins
+
+Certain features allow the use of plugins to enhance this software. Here is
+documentation of how to write and use these plugins.
+
+### Direction Plugin
+
+This plugin is a callable defined in an outside Python module that can perform
+actions depending on which button has been pressed. The function should take
+two positional arguments:
+
+1. The sense hat object created by SenseHat()
+2. The direction pressed as a string ("up", "right", or "down")
+
+This means that the plugin can write directly to the sense hat display, read
+the sense hat's sensors, and perform different actions based on the direction
+pressed. However, the plugin will have no access to messages. A very simple 
+plugin could be the following:
+
+```
+def myplugin(sense, direction):
+    if direction == "up":
+        sense.show_message("Temperature: %s C" % sense.get_temperature())
+    elif direction == "right":
+        sense.show_message("Humidity: %s %%" % sense.get_humidity())
+    elif direction == "down":
+        sense.show_message("Pressure: %s millibars" % sense.get_pressure())
+```
+
+When the function returns, the screen is cleared and normal message polling
+resumes. Any return value is discarded.
 
 ## Starting automatically
 
