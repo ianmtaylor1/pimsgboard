@@ -2,7 +2,6 @@ import sense_hat
 import time
 import threading
 import sys
-import configparser
 import colorsys
 import math
 import os
@@ -10,6 +9,7 @@ import os
 from . import db
 from . import web
 from . import plugin
+from . import config
 
 ######################################################
 
@@ -28,7 +28,11 @@ def display_message_plain(sense, msg, speed=1):
             scroll_speed=0.1/speed)
 
 # This function waits for joystick input and calls appropriate functions
-def handle_joystick_input(sense, led_lock, db_file, direction_plugin, msg_speed=1):
+def handle_joystick_input(sense, led_lock):
+    db_file = config.getstr('dbfile')
+    msg_speed = config.getfloat('scrollspeed')
+    direction_plugin = plugin.get_plugin_by_name(config.getstr('directionplugin'))
+
     # Start out with a blank list of messages
     msgs = []
     while True:
@@ -63,7 +67,10 @@ def handle_joystick_input(sense, led_lock, db_file, direction_plugin, msg_speed=
 
 # This thread periodically polls the message database and alerts for available
 # new messages
-def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
+def check_inbox(sense, led_lock):
+    db_file = config.getstr('dbfile')
+    poll_interval = config.getfloat('pollinterval')
+
     while True:
         # How many messages do we currently have?
         count = db.count_messages(db_file)
@@ -91,7 +98,11 @@ def check_inbox(sense, led_lock, db_file, poll_interval=5.0):
 
 # This thread periodically checks the message database and automatically
 # scrolls messages across the display
-def check_and_autoplay(sense, led_lock, db_file, poll_interval=5.0, msg_speed=1):
+def check_and_autoplay(sense, led_lock):
+    db_file = config.getstr('dbfile')
+    poll_interval = config.getfloat('pollinterval')
+    msg_speed = config.getfloat('scrollspeed')
+
     while True:
         # How many messages do we currently have?
         msgs = db.get_all_messages(db_file)
@@ -104,35 +115,15 @@ def check_and_autoplay(sense, led_lock, db_file, poll_interval=5.0, msg_speed=1)
 
 
 def main():
-    # Read from configuration
-    cf = configparser.ConfigParser({
-        'dbfile': "/tmp/pimsgboard.db",
-        'scrollspeed':2.0,
-        'pollinterval':5.0,
-        'webhost':'',
-        'webport':8080,
-        'lowlight':True,
-        'autoplay':False,
-        'directionplugin':''})
-    cf.add_section('pimsgboard')
-    if os.path.isfile(os.path.expanduser("~/.pimsgboard")):
-        cf.read(os.path.expanduser("~/.pimsgboard"))
     # Location of the database we will read from
-    db_file = cf.get("pimsgboard", "dbfile")
-    # How fast to scroll. 1 is default. 2 is twice as fast, etc.
-    msg_speed = cf.getfloat("pimsgboard", "scrollspeed")
-    # How frequently to poll for new messages, in seconds
-    poll_interval = cf.getfloat("pimsgboard", "pollinterval")
-    # Where to serve the webpage
-    web_host = cf.get("pimsgboard", "webhost")
-    web_port = cf.getint("pimsgboard", "webport")
+    db_file = config.getstr("dbfile")
     # Set low light mode to protect retinas
-    low_light = cf.getboolean("pimsgboard", "lowlight")
+    low_light = config.getbool("lowlight")
     # Should messages automatically scroll or wait for buttons?
-    auto_play = cf.getboolean("pimsgboard", "autoplay")
+    auto_play = config.getbool("autoplay") 
     # What function should be used for remaining directional buttons?
-    direction_plugin_name = cf.get("pimsgboard", "directionplugin")
-    
+    direction_plugin_name = config.getstr("directionplugin")
+
     # Check if the database exists and is in the correct format
     if not db.check_db(db_file):
         sys.exit("Error reading database file {}".format(db_file))
@@ -150,26 +141,14 @@ def main():
     # Start threads for handling joystick input, idle inbox display,
     # and web interface. If autoplay is on, start thread for autoplaying
     if auto_play:
-        auto_thread = threading.Thread(
-                target=check_and_autoplay,
-                args=(sense, led_lock, db_file),
-                kwargs={'msg_speed':msg_speed, 'poll_interval':poll_interval})
+        auto_thread = threading.Thread(target=check_and_autoplay, args=(sense, led_lock))
         auto_thread.start()
     else:
-        input_thread = threading.Thread(
-                target=handle_joystick_input,
-                args=(sense, led_lock, db_file, direction_plugin),
-                kwargs={'msg_speed':msg_speed})
-        inbox_thread = threading.Thread(
-                target=check_inbox,
-                args=(sense, led_lock, db_file),
-                kwargs={'poll_interval':poll_interval})
+        input_thread = threading.Thread(target=handle_joystick_input, args=(sense, led_lock))
+        inbox_thread = threading.Thread(target=check_inbox, args=(sense, led_lock))
         input_thread.start()
         inbox_thread.start()
-    web_thread = threading.Thread(
-            target=web.start_server,
-            args=(web_host, web_port, db_file),
-            kwargs={})
+    web_thread = threading.Thread(target=web.start_server)
     web_thread.start()
     
     print("Ready")
